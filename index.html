@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <!-- ==============================================================
+        SISTEMA DE GESTIÓN CIUDADANA — COPACI GRANJAS GUADALUPE
+        Basado en Diagrama de Casos de Uso — 06/10/2026
+        Roles: Administrador · COPACI · Ciudadano
+        Funcionalidades: Login · Reportes · Trámites · Eventos · Usuarios
+        ============================================================== -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema oficial COPACI Granjas Guadalupe — Reportes, trámites, eventos, participación ciudadana">
+    <meta name="author" content="Trabajo Final — Programación Web">
+    <title>Sistema de Gestión Ciudadana | COPACI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ==============================================================
+        PANTALLA DE INICIO DE SESIÓN — Protege todo el sistema
+        ============================================================== -->
+    <div id="pantalla-login" class="pantalla-login">
+        <div class="caja-login">
+            <div class="encabezado-login">
+                <h1 class="titulo-login">COPACI</h1>
+                <p class="subtitulo-login">Sistema de Gestión Ciudadana</p>
+                <span class="lugar-login">Granjas Guadalupe</span>
+            </div>
+
+            <form id="form-login" class="formulario-login">
+                <div class="grupo-input">
+                    <label for="usuario">👤 Usuario</label>
+                    <input type="text" id="usuario" placeholder="Escribe tu usuario" required>
+                </div>
+
+                <div class="grupo-input">
+                    <label for="contrasena">🔒 Contraseña</label>
+                    <input type="password" id="contrasena" placeholder="Escribe tu contraseña" required>
+                </div>
+
+                <p id="mensaje-error" class="mensaje-error">Usuario o contraseña incorrectos ❌</p>
+
+                <button type="submit" class="boton-ingresar">Ingresar al Sistema</button>
+
+                <div class="credenciales-ayuda">
+                    <p class="texto-ayuda">Prueba con estos ejemplos:</p>
+                    <p class="ejemplo">Admin → usuario: <strong>admin</strong> | clave: <strong>admin123</strong></p>
+                    <p class="ejemplo">Ciudadano → usuario: <strong>ciudadano</strong> | clave: <strong>ciudadano123</strong></p>
+                    <p class="ejemplo">COPACI → usuario: <strong>copaci</strong> | clave: <strong>copaci123</strong></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+        SISTEMA PRINCIPAL — SOLO VISIBLE SI INICIAS SESIÓN
+        ============================================================== -->
+    <div id="sistema-completo" class="oculto">
+        <!-- Barra Superior de Navegación -->
+        <header class="barra-superior">
+            <div class="contenedor">
+                <div class="marca-sistema">
+                    <h2>COPACI — Granjas Guadalupe</h2>
+                    <p id="rol-usuario" class="etiqueta-rol"></p>
+                </div>
+                <div class="acciones-usuario">
+                    <span id="nombre-usuario" class="nombre-usuario"></span>
+                    <button id="boton-salir" class="boton-salir">🚪 Cerrar Sesión</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Menú Lateral según ROL -->
+        <nav id="menu-lateral" class="menu-lateral">
+            <ul id="contenedor-menu" class="lista-menu">
+                <!-- Se llena automáticamente según el tipo de usuario -->
+            </ul>
+        </nav>
+
+        <!-- Área de Contenido Dinámico -->
+        <main id="contenido-dinamico" class="contenido-dinamico">
+            <!-- Aquí se cargan todas las pantallas -->
+        </main>
+    </div>
+
+    <!-- ==============================================================
+        JAVASCRIPT: Lógica de acceso, menús y navegación
+        ============================================================== -->
+    <script>
+        // Base de datos de usuarios (puedes agregar más)
+        const usuarios = [
+            { usuario: "admin", contrasena: "admin123", rol: "Administrador", nombre: "Administrador del Sistema" },
+            { usuario: "copaci", contrasena: "copaci123", rol: "COPACI", nombre: "Comité de Participación Ciudadana" },
+            { usuario: "ciudadano", contrasena: "ciudadano123", rol: "Ciudadano", nombre: "Vecino de Granjas Guadalupe" }
+        ];
+
+        // Elementos del DOM
+        const pantallaLogin = document.getElementById('pantalla-login');
+        const sistemaCompleto = document.getElementById('sistema-completo');
+        const formLogin = document.getElementById('form-login');
+        const inputUsuario = document.getElementById('usuario');
+        const inputContrasena = document.getElementById('contrasena');
+        const mensajeError = document.getElementById('mensaje-error');
+        const nombreUsuario = document.getElementById('nombre-usuario');
+        const rolUsuario = document.getElementById('rol-usuario');
+        const contenedorMenu = document.getElementById('contenedor-menu');
+        const contenidoDinamico = document.getElementById('contenido-dinamico');
+        const botonSalir = document.getElementById('boton-salir');
+
+        // Ocultar mensaje de error al escribir
+        inputUsuario.addEventListener('input', () => mensajeError.classList.remove('activo'));
+        inputContrasena.addEventListener('input', () => mensajeError.classList.remove('activo'));
+
+        // Inicio de sesión
+        formLogin.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const user = usuarios.find(u => 
+                u.usuario === inputUsuario.value.trim() && 
+                u.contrasena === inputContrasena.value
+            );
+
+            if (user) {
+                accederSistema(user);
+            } else {
+                mensajeError.classList.add('activo');
+            }
+        });
+
+        // Salir del sistema
+        botonSalir.addEventListener('click', function() {
+            sistemaCompleto.classList.add('oculto');
+            pantallaLogin.classList.remove('oculto');
+            formLogin.reset();
+            mensajeError.classList.remove('activo');
+        });
+
+        // Cargar menú y pantalla según rol
+        function accederSistema(datosUsuario) {
+            pantallaLogin.classList.add('oculto');
+            sistemaCompleto.classList.remove('oculto');
+            nombreUsuario.textContent = datosUsuario.nombre;
+            rolUsuario.textContent = `Rol: ${datosUsuario.rol}`;
+            
+            generarMenu(datosUsuario.rol);
+            cargarPantallaInicio(datosUsuario.rol);
+        }
+
+        // Generar menú dinámico
+        function generarMenu(rol) {
+            contenedorMenu.innerHTML = '';
+
+            // Elementos comunes a todos
+            const elementosComunes = [
+                { id: 'inicio', icono: '🏠', texto: 'Inicio' },
+                { id: 'reportes', icono: '📢', texto: 'Mis Reportes' },
+                { id: 'eventos', icono: '📅', texto: 'Eventos' },
+                { id: 'tramites', icono: '📝', texto: 'Trámites y Documentos' },
+                { id: 'opiniones', icono: '💬', texto: 'Opiniones y Sugerencias' },
+                { id: 'membresia', icono: '🤝', texto: 'Membresía y Comunidad' },
+                { id: 'contacto', icono: '📞', texto: 'Contacto y Ubicación' }
+            ];
+
+            // Elementos solo para Administrador
+            const elementosAdmin = [
+                { id: 'usuarios', icono: '👥', texto: 'Gestionar Usuarios' },
+                { id: 'informes', icono: '📊', texto: 'Informes y Reportes' }
+            ];
+
+            // Elementos solo para COPACI
+            const elementosCOPACI = [
+                { id: 'avisos', icono: '📢', texto: 'Publicar Avisos' },
+                { id: 'solicitudes', icono: '📋', texto: 'Solicitudes de Eventos' },
+                { id: 'informes', icono: '📊', texto: 'Informes Trimestrales' }
+            ];
+
+            // Agregar elementos según rol
+            elementosComunes.forEach(item => agregarItemMenu(item));
+            
+            if (rol === 'Administrador') {
+                elementosAdmin.forEach(item => agregarItemMenu(item));
+            }
+            if (rol === 'COPACI') {
+                elementosCOPACI.forEach(item => agregarItemMenu(item));
+            }
+
+            function agregarItemMenu(item) {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="#${item.id}" data-seccion="${item.id}">${item.icono} ${item.texto}</a>`;
+                contenedorMenu.appendChild(li);
+                li.querySelector('a').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    cargarSeccion(item.id, rol);
+                    document.querySelectorAll('.lista-menu a').forEach(a => a.classList.remove('activo'));
+                    li.querySelector('a').classList.add('activo');
+                });
+            }
+        }
+
+        // Cargar pantalla de bienvenida
+        function cargarPantallaInicio(rol) {
+            contenidoDinamico.innerHTML = `
+                <div class="pantalla-bienvenida">
+                    <h2>¡Bienvenido(a) al Sistema de Gestión Ciudadana! 🎉</h2>
+                    <p class="mensaje-bienvenida">Has ingresado como <strong>${rol}</strong>. Desde aquí puedes acceder a todos los servicios disponibles para tu rol.</p>
+                    <p class="instruccion">Selecciona una opción del menú lateral para empezar.</p>
+                    <div class="resumen-accesos">
+                        <h3>¿Qué puedes hacer?</h3>
+                        <ul>
+                            ${rol === 'Ciudadano' ? `
+                            <li>✅ Enviar reportes de problemas en tu colonia</li>
+                            <li>✅ Consultar eventos y actividades comunitarias</li>
+                            <li>✅ Solicitar trámites y documentos</li>
+                            <li>✅ Compartir opiniones y sugerencias</li>
+                            <li>✅ Integrarte a la membresía del COPACI</li>` : ''}
+                            ${rol === 'COPACI' ? `
+                            <li>✅ Publicar avisos y comunicados a la comunidad</li>
+                            <li>✅ Recibir y autorizar solicitudes de eventos</li>
+                            <li>✅ Emitir informes de actividades trimestrales</li>
+                            <li>✅ Gestionar trámites y documentos de vecinos</li>
+                            <li>✅ Revisar y responder opiniones ciudadanas</li>` : ''}
+                            ${rol === 'Administrador' ? `
+                            <li>✅ Registrar nuevos usuarios al sistema</li>
+                            <li>✅ Actualizar datos de cuentas existentes</li>
+                            <li>✅ Eliminar cuentas que ya no correspondan</li>
+                            <li>✅ Ver todos los reportes y actividad del sistema</li>` : ''}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cargar cada sección del sistema
+        function cargarSeccion(id, rol) {
+            let contenido = '';
+
+            switch(id) {
+                // ==============================================
+                // REPORTE DE PROBLEMAS — Ciudadano
+                // ==============================================
+                case 'reportes':
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📢 Reporte de Problemas e Incidencias</h2>
+                            <p class="descripcion-seccion">¿Ves algo que necesita atención? Cuéntanos para atenderlo pronto.</p>
+                            
+                            <form class="formulario-reporte">
+                                <div class="grupo-form">
+                                    <label>📍 Lugar del problema</label>
+                                    <input type="text" placeholder="Ej. Calle Los Pinos esquina con Av. Principal" required>
+                                </div>
+                                
+                                <div class="grupo-form">
+                                    <label>🏷️ Tipo de problema</label>
+                                    <select required>
+                                        <option value="">Selecciona una categoría</option>
+                                        <option>💡 Alumbrado público apagado</option>
+                                        <option>🚧 Bache o daño en calle</option>
+                                        <option>🗑️ Acumulación de basura</option>
+                                        <option>🚿 Fuga de agua</option>
+                                        <option>🔊 Ruido o conflicto vecinal</option>
+                                        <option>🌳 Árbol o rama en riesgo</option>
+                                        <option>📉 Otro</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="grupo-form">
+                                    <label>📝 Descripción detallada</label>
+                                    <textarea rows="4" placeholder="Escribe con claridad qué pasa, desde cuándo, etc." required></textarea>
+                                </div>
+                                
+                                <div class="grupo-form">
+                                    <label>📷 Subir fotografía (opcional)</label>
+                                    <input type="file" accept="image/*">
+                                </div>
+                                
+                                <div class="grupo-form">
+                                    <label>📞 Tu teléfono o correo (si quieres seguimiento)</label>
+                                    <input type="text" placeholder="Ej. 55-1234-5678">
+                                </div>
+                                
+                                <button type="submit" class="boton-enviar">✅ Enviar Reporte</button>
+                            </form>
+                            
+                            <div class="lista-reportes-recientes">
+                                <h3>Tus reportes recientes</h3>
+                                <div class="tarjeta-reporte">
+                                    <p><strong>Alumbrado — Calle Los Álamos</strong></p>
+                                    <p class="estado-reporte">✅ En revisión</p>
+                                    <p class="fecha-reporte">Enviado: 04/10/2026</p>
+                                </div>
+                                <div class="tarjeta-reporte">
+                                    <p><strong>Basura — Av. Granjas</strong></p>
+                                    <p class="estado-reporte estado-resuelto">✅ Resuelto</p>
+                                    <p class="fecha-reporte">Enviado: 28/09/2026</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // EVENTOS — Todos ven, COPACI administra
+                // ==============================================
+                case 'eventos':
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📅 Eventos y Actividades Comunitarias</h2>
+                            <p class="descripcion-seccion">Conoce todo lo que pasa en tu colonia y participa.</p>
+                            
+                            ${rol === 'COPACI' ? `
+                            <div class="bloque-accion-admin">
+                                <h3>📝 Publicar Nuevo Evento</h3>
+                                <form class="form-evento">
+                                    <div class="grupo-form"><label>Título del evento</label><input type="text" required></div>
+                                    <div class="grupo-form"><label>Fecha y hora</label><input type="datetime-local" required></div>
+                                    <div class="grupo-form"><label>Lugar</label><input type="text" required></div>
+                                    <div class="grupo-form"><label>Descripción</label><textarea rows="3" required></textarea></div>
+                                    <button type="submit" class="boton-enviar">Publicar Evento</button>
+                                </form>
+                            </div>` : ''}
+                            
+                            <h3>Próximamente</h3>
+                            <div class="grilla-eventos">
+                                <div class="tarjeta-evento">
+                                    <h4>🗳️ Asamblea Mensual de Vecinos</h4>
+                                    <p class="fecha">Sábado 18 de Octubre — 10:00 hrs</p>
+                                    <p class="lugar">Plaza Principal</p>
+                                    <p>Trataremos temas de seguridad, presupuesto y obras.</p>
+                                    <button class="boton-inscribir">✅ Asistiré</button>
+                                </div>
+                                <div class="tarjeta-evento">
+                                    <h4>🧹 Jornada de Limpieza</h4>
+                                    <p class="fecha">Domingo 12 de Octubre — 09:00 hrs</p>
+                                    <p class="lugar">Parque Las Flores</p>
+                                    <p>Trae tu escoba y bolsa. ¡Entre todos cuidamos nuestra colonia!</p>
+                                    <button class="boton-inscribir">✅ Me sumo</button>
+                                </div>
+                                <div class="tarjeta-evento">
+                                    <h4>⚽ Torneo Deportivo Comunitario</h4>
+                                    <p class="fecha">Inicia: 20 de Octubre</p>
+                                    <p class="lugar">Canchas de la Unidad Deportiva</p>
+                                    <p>Inscripciones abiertas hasta el 15 de octubre.</p>
+                                    <button class="boton-inscribir">📋 Registrar equipo</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // TRÁMITES Y DOCUMENTOS
+                // ==============================================
+                case 'tramites':
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📝 Trámites y Solicitud de Documentos</h2>
+                            <p class="descripcion-seccion">Gestiona tus documentos y trámites sin filas innecesarias.</p>
+                            
+                            <div class="lista-tramites-disponibles">
+                                <div class="tarjeta-tramite">
+                                    <h4>📄 Constancia de Residencia</h4>
+                                    <p>Documento que acredita que vives en la colonia.</p>
+                                    <p class="requisitos"><strong>Requisitos:</strong> Identificación + comprobante de domicilio</p>
+                                    <button class="boton-solicitar">📝 Iniciar Solicitud</button>
+                                </div>
+                                <div class="tarjeta-tramite">
+                                    <h4>📋 Carta de Buena Conducta</h4>
+                                    <p>Para empleos, escuelas y trámites personales.</p>
+                                    <p class="requisitos"><strong>Requisitos:</strong> 2 fotografías + llenar formato</p>
+                                    <button class="boton-solicitar">📝 Iniciar Solicitud</button>
+                                </div>
+                                <div class="tarjeta-tramite">
+                                    <h4>🏠 Aval Vecinal</h4>
+                                    <p>Apoyo para trámites de vivienda o programas sociales.</p>
+                                    <p class="requisitos"><strong>Requisitos:</strong> Cita previa + documentos de identidad</p>
+                                    <button class="boton-solicitar">📝 Iniciar Solicitud</button>
+                                </div>
+                                <div class="tarjeta-tramite">
+                                    <h4>📜 Certificado de Vecindad</h4>
+                                    <p>Registro oficial ante el comité.</p>
+                                    <p class="requisitos"><strong>Requisitos:</strong> Llenar solicitud + comprobante de domicilio</p>
+                                    <button class="boton-solicitar">📝 Iniciar Solicitud</button>
+                                </div>
+                            </div>
+                            
+                            <div class="seguimiento-tramites">
+                                <h3>🔍 Seguimiento de tus Trámites</h3>
+                                <p>Escribe tu folio para saber el estado:</p>
+                                <div class="busqueda-folio">
+                                    <input type="text" placeholder="Ej. TRAM-2026-042">
+                                    <button class="boton-buscar">Buscar</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // OPINIONES Y SUGERENCIAS
+                // ==============================================
+                case 'opiniones':
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>💬 Opiniones, Quejas y Sugerencias</h2>
+                            <p class="descripcion-seccion">Tu voz es importante. Todo lo que digas será escuchado con respeto.</p>
+                            
+                            <form class="form-opinion">
+                                <div class="grupo-form">
+                                    <label>¿Qué tipo de comunicación envías?</label>
+                                    <select>
+                                        <option>Sugerencia 💡</option>
+                                        <option>Queja o reclamo ⚠️</option>
+                                        <option>Felicitación 🎉</option>
+                                        <option>Pregunta o duda ❓</option>
+                                        <option>Otra 📝</option>
+                                    </select>
+                                </div>
+                                <div class="grupo-form">
+                                    <label>Tu mensaje</label>
+                                    <textarea rows="5" placeholder="Escribe aquí lo que quieres compartir..." required></textarea>
+                                </div>
+                                <div class="grupo-form">
+                                    <label>¿Quieres que te contactemos? (Opcional)</label>
+                                    <input type="text" placeholder="Tu nombre y teléfono o correo">
+                                </div>
+                                <button type="submit" class="boton-enviar">💬 Enviar Comunicación</button>
+                            </form>
+                            
+                            <div class="respuestas-comunidad">
+                                <h3>Comentarios y Respuestas</h3>
+                                <div class="comentario">
+                                    <p class="texto-comentario">"Sería bueno que amplíen los horarios de atención los sábados."</p>
+                                    <p class="respuesta-copaci"><strong>Respuesta COPACI:</strong> ¡Excelente idea! A partir de noviembre ampliamos a 9:00 — 14:00 hrs. ✅</p>
+                                </div>
+                                <div class="comentario">
+                                    <p class="texto-comentario">"Gracias por la pronta atención a la lámpara de mi calle."</p>
+                                    <p class="respuesta-copaci"><strong>Respuesta COPACI:</strong> ¡Gracias a ti por avisar! 🤝</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // MEMBRESÍA Y COMUNIDAD
+                // ==============================================
+                case 'membresia':
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>🤝 Membresía y Participación Comunitaria</h2>
+                            <p class="descripcion-seccion">Únete formalmente y ten voz y voto en las decisiones de tu colonia.</p>
+                            
+                            <div class="beneficios-membresia">
+                                <h3>✨ Beneficios de ser Miembro Activo</h3>
+                                <ul class="lista-beneficios">
+                                    <li>✅ Voz y voto en asambleas y decisiones del comité</li>
+                                    <li>✅ Acceso prioritario a programas y apoyos</li>
+                                    <li>✅ Recibir información directa y oportuna</li>
+                                    <li>✅ Integrarte a comisiones de trabajo</li>
+                                    <li>✅ Certificado de participación ciudadana</li>
+                                    <li>✅ Descuentos en talleres y eventos organizados por el comité</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="requisitos-membresia">
+                                <h3>📋 Requisitos para Inscribirte</h3>
+                                <ol>
+                                    <li>Ser habitante de la colonia Granjas Guadalupe</li>
+                                    <li>Ser mayor de 16 años</li>
+                                    <li>Presentar identificación oficial vigente</li>
+                                    <li>Comprobante de domicilio (no mayor a 3 meses)</li>
+                                    <li>Llenar solicitud de inscripción</li>
+                                    <li>Asistir a una reunión de inducción</li>
+                                </ol>
+                            </div>
+                            
+                            <form class="form-inscripcion">
+                                <h3>📝 Formulario de Pre-inscripción</h3>
+                                <div class="grupo-form"><label>Nombre completo</label><input type="text" required></div>
+                                <div class="grupo-form"><label>Dirección</label><input type="text" required></div>
+                                <div class="grupo-form"><label>Teléfono y correo</label><input type="text" required></div>
+                                <div class="grupo-form"><label>¿En qué te gustaría colaborar?</label>
+                                    <select>
+                                        <option>Seguridad y protección civil</option>
+                                        <option>Obras y servicios públicos</option>
+                                        <option>Cultura, deporte y educación</option>
+                                        <option>Medio ambiente y limpieza</option>
+                                        <option>Comunicación y difusión</option>
+                                        <option>Aún no lo decido</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="boton-inscribir">🤝 Quiero Ser Miembro</button>
+                            </form>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // CONTACTO
+                // ==============================================
+                case 'contacto':
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📞 Contacto y Ubicación</h2>
+                            <p class="descripcion-seccion">Estamos cerca de ti. Acércate cuando lo necesites.</p>
+                            
+                            <div class="cuadro-contacto">
+                                <div class="bloque-dato-contacto">
+                                    <h3>📍 Domicilio</h3>
+                                    <p>Plaza Principal — Calle Los Álamos s/n<br>Col. Granjas Guadalupe<br>C.P. 54720, Cuautitlán Izcalli, Edo. Méx.</p>
+                                </div>
+                                <div class="bloque-dato-contacto">
+                                    <h3>📞 Teléfono</h3>
+                                    <p>(55) 1234-5678<br>WhatsApp: (55) 8765-4321</p>
+                                </div>
+                                <div class="bloque-dato-contacto">
+                                    <h3>✉️ Correo Electrónico</h3>
+                                    <p>contacto@copaci-granjasg.mx<br>eventos@copaci-granjasg.mx</p>
+                                </div>
+                                <div class="bloque-dato-contacto">
+                                    <h3>🕐 Horarios de Atención</h3>
+                                    <p>Lunes a Viernes: 9:00 — 18:00 hrs<br>Sábados: 9:00 — 14:00 hrs<br>Domingos: Cerrado</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mapa-ubicacion">
+                                <h3>🗺️ ¿Cómo llegar?</h3>
+                                <p>Estamos en la explanada principal de la colonia, frente al parque central.</p>
+                                <button class="boton-mapa">📍 Ver en Google Maps</button>
+                            </div>
+                            
+                            <div class="redes-oficiales">
+                                <h3>📱 Síguenos</h3>
+                                <p>@COPACI-GranjasGuadalupe — Facebook, Instagram y WhatsApp</p>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // GESTIÓN DE USUARIOS — SOLO ADMINISTRADOR
+                // ==============================================
+                case 'usuarios':
+                    if (rol !== 'Administrador') { contenido = '<p>No tienes permiso para ver esta sección ❌</p>'; break; }
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>👥 Gestión de Usuarios del Sistema</h2>
+                            <p class="descripcion-seccion">Registra, actualiza o elimina cuentas de acceso al sistema.</p>
+                            
+                            <div class="subseccion-admin">
+                                <h3>➕ Registrar Nuevo Usuario</h3>
+                                <form class="form-usuario">
+                                    <div class="grupo-form"><label>Nombre completo</label><input type="text" required></div>
+                                    <div class="grupo-form"><label>Nombre de usuario</label><input type="text" required></div>
+                                    <div class="grupo-form"><label>Contraseña</label><input type="password" required></div>
+                                    <div class="grupo-form"><label>Rol en el sistema</label>
+                                        <select required>
+                                            <option value="Ciudadano">Ciudadano</option>
+                                            <option value="COPACI">COPACI</option>
+                                            <option value="Administrador">Administrador</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="boton-enviar">✅ Crear Usuario</button>
+                                </form>
+                            </div>
+                            
+                            <div class="subseccion-admin">
+                                <h3>📋 Usuarios Activos</h3>
+                                <table class="tabla-usuarios">
+                                    <tr><th>Usuario</th><th>Rol</th><th>Acciones</th></tr>
+                                    <tr><td>admin</td><td>Administrador</td><td><button class="btn-actualizar">✏️ Actualizar</button> <button class="btn-eliminar">🗑️ Eliminar</button></td></tr>
+                                    <tr><td>copaci</td><td>COPACI</td><td><button class="btn-actualizar">✏️ Actualizar</button> <button class="btn-eliminar">🗑️ Eliminar</button></td></tr>
+                                    <tr><td>ciudadano</td><td>Ciudadano</td><td><button class="btn-actualizar">✏️ Actualizar</button> <button class="btn-eliminar">🗑️ Eliminar</button></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // AVISOS A LA COMUNIDAD — SOLO COPACI
+                // ==============================================
+                case 'avisos':
+                    if (rol !== 'COPACI') { contenido = '<p>No tienes permiso para ver esta sección ❌</p>'; break; }
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📢 Publicar Avisos y Comunicados</h2>
+                            <p class="descripcion-seccion">Comunica información oficial a todos los vecinos del sistema.</p>
+                            
+                            <form class="form-aviso">
+                                <div class="grupo-form"><label>Título del aviso</label><input type="text" required></div>
+                                <div class="grupo-form"><label>Mensaje</label><textarea rows="5" required></textarea></div>
+                                <div class="grupo-form"><label>Fecha de publicación</label><input type="date" required></div>
+                                <div class="grupo-form"><label>¿Destacar como importante?</label><input type="checkbox"></div>
+                                <button type="submit" class="boton-enviar">📢 Publicar Aviso</button>
+                            </form>
+                            
+                            <h3>Avisos Publicados</h3>
+                            <div class="lista-avisos">
+                                <div class="aviso-destacado">
+                                    <h4>⚠️ CORTE DE ENERGÍA — Mantenimiento programado</h4>
+                                    <p>El día 8 de octubre de 9:00 a 13:00 hrs se realizará mantenimiento de luminarias. Se recomienda tomar precauciones.</p>
+                                    <p class="fecha-publicacion">Publicado: 06/10/2026</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // SOLICITUDES DE EVENTOS — SOLO COPACI
+                // ==============================================
+                case 'solicitudes':
+                    if (rol !== 'COPACI') { contenido = '<p>No tienes permiso para ver esta sección ❌</p>'; break; }
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📋 Solicitudes de Eventos y Espacios</h2>
+                            <p class="descripcion-seccion">Revisa, autoriza o rechaza peticiones de uso de espacios comunitarios.</p>
+                            
+                            <div class="lista-solicitudes">
+                                <div class="solicitud-pendiente">
+                                    <h4>Solicitud: Reunión de vecinos</h4>
+                                    <p><strong>Solicitante:</strong> María González</p>
+                                    <p><strong>Fecha:</strong> 15 de Octubre — 18:00 hrs</p>
+                                    <p><strong>Espacio:</strong> Salón de usos múltiples</p>
+                                    <p><strong>Motivo:</strong> Reunión de grupo de trabajo</p>
+                                    <div class="botones-aprobacion">
+                                        <button class="btn-aprobar">✅ Autorizar</button>
+                                        <button class="btn-denegar">❌ No autorizar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                // ==============================================
+                // INFORMES TRIMESTRALES — COPACI y ADMIN
+                // ==============================================
+                case 'informes':
+                    if (rol !== 'COPACI' && rol !== 'Administrador') { contenido = '<p>No tienes permiso para ver esta sección ❌</p>'; break; }
+                    contenido = `
+                        <div class="seccion-sistema">
+                            <h2>📊 Informes Trimestrales de Actividades</h2>
+                            <p class="descripcion-seccion">Documentos de transparencia con lo realizado en el comité.</p>
+                            
+                            <div class="lista-informes">
+                                <div class="informe">
+                                    <h4>Informe Trimestral — Julio a Septiembre 2026</h4>
+                                    <ul>
+                                        <li>📌 12 reportes atendidos y resueltos</li>
+                                        <li>📅 4 eventos comunitarios organizados</li>
+                                        <li>👥 18 nuevos miembros inscritos</li>
+                                        <li>📝 25 trámites gestionados</li>
+                                        <li>💰 Ejercicio de recursos publicado</li>
+                                    </ul>
+                                    <button class="boton-descargar">📄 Descargar PDF Completo</button>
+                                </div>
+                                <div class="informe">
+                                    <h4>Informe Trimestral — Abril a Junio 2026</h4>
+                                    <button class="boton-descargar">📄 Descargar PDF</button>
+                                </div>
+                            </div>
+                            
+                            ${rol === 'COPACI' ? `
+                            <div class="subir-informe">
+                                <h3>📤 Subir Nuevo Informe</h3>
+                                <input type="file" accept=".pdf">
+                                <button class="boton-enviar">Subir y Publicar</button>
+                            </div>` : ''}
+                        </div>
+                    `;
+                    break;
+
+                default:
+                    contenido = '<p>Sección no encontrada</p>';
+            }
+
+            contenidoDinamico.innerHTML = contenido;
+        }
+    </script>
+</body>
+</html>
